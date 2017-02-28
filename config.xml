@@ -8,6 +8,6 @@
         PhoneGap Team
     </author>
     <content src="index.html" />
-	<plugin name="Storage" value="org.apache.cordova.Storage" />
+	<!--<plugin name="Storage" value="org.apache.cordova.Storage" />-->
     <access origin="*" /> 
 </widget>
