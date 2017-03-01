@@ -8,7 +8,7 @@
         PhoneGap Team
     </author>
 	<platform name="android">
-		<icon src="img/logo.png" />
+		<icon src="img/icon.png" />
     </platform>
 	<preference name="KeepRunning" value="false"/>
 	<preference name="android-minSdkVersion" value="14" />
