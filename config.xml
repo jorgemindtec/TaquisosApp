@@ -2,11 +2,16 @@
 <widget id="taquisos.store" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>Taquisos</name>
     <description>
-        Taquisos PhoneGap app.
+        Aplicacion de venta Taquisos.
     </description>
-    <author email="support@phonegap.com" href="http://phonegap.com">
+    <author email="contacto@mindtec.com.mx" href="http://mindtec.com.mx/">
         PhoneGap Team
     </author>
+	<platform name="android">
+		<icon src="img/logo.png" />
+    </platform>
+	<preference name="KeepRunning" value="false"/>
+	<preference name="android-minSdkVersion" value="14" />
     <content src="index.html" />
 	<!--<plugin name="Storage" value="org.apache.cordova.Storage" />-->
     <access origin="*" /> 
