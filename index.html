@@ -31,7 +31,7 @@
 		if(mm<10){
 			mm='0'+mm;
 		} 
-		var date = dd+'/'+mm+'/'+yyyy;
+		var date = yyyy+'-'+mm+'-'+dd;
 		
         document.addEventListener("deviceready", onDeviceReady, false);
 
@@ -47,16 +47,16 @@
             tx.executeSql('CREATE TABLE IF NOT EXISTS PRODUCTOS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, nombre,precio,imagen)');
         }
         function crearBDVentas(tx) {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTAS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, total,fecha)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTAS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, total INTEGER,fecha)');
         }	
         function crearBDVentasDetalle(tx) {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTASDETALLE (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, producto,cantidad,total,pedido)');
-        }	
+            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTASDETALLE (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, producto,cantidad,total INTEGER,pedido)');
+        }
+		// -------- TABLA PRODUCTOS
         function successCB() {
             var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
             db.transaction(queryDB, errorCB);
         }
-		// -------- TABLA PRODUCTOS
         function queryDB(tx) {
             tx.executeSql('SELECT * FROM PRODUCTOS', [], querySuccess, errorCB);
         }
@@ -138,17 +138,20 @@
             db.transaction(showVentas, errorCB);
 		}
         function showVentas(tx) {
-            tx.executeSql('SELECT * FROM VENTAS', [], querySuccessVentas, errorCB);
+            tx.executeSql("SELECT * FROM VENTAS where fecha='"+date+"'", [], querySuccessVentas, errorCB);
         }
         function querySuccessVentas(tx, results) {
+			var MontoDia=0;
             var tblText='<table id="report-info"><tr class="table-header"><td>Pedido</td><td>Total</td><td>Fecha</td></tr>';
             var len = results.rows.length;
             for (var i = 0; i < len; i++) {
+				MontoDia += results.rows.item(i).total;
 				var tmpArgs=results.rows.item(i).id;
                 tblText +='<tr onclick="DetallePedido('+tmpArgs+');"><td>'+results.rows.item(i).id +'</td><td class="txtTotal">$'
                         + results.rows.item(i).total +'</td><td class="txtFecha">' + results.rows.item(i).fecha +'</td></tr>';
             }
             tblText +="</table>";
+            document.getElementById("MontoDia").value =MontoDia;
             document.getElementById("orders").innerHTML =tblText;
         }
 		// -------- COBRAR Y REGISTRAR VENTA
@@ -235,7 +238,7 @@
 			MostrarDetalle();
 		}
 		function MostrarDetalle(){
-			document.getElementById("order-details").style.display="block";
+			document.getElementById("order-details").className="show";
 			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
             db.transaction(searchDetallePedido, errorCB);			
 		}
@@ -254,22 +257,94 @@
         }
 		// -------- BUSCAR PRODUCTO EN VENTAS DETALLE
         function Search() {
-			document.getElementById("order-details-product").style.display="block";
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
-            db.transaction(searchQueryDB, errorCB);
+			if(document.getElementById("FechaInicial").value==""){
+				alert("Se debe seleccionar una fecha correcta");
+				document.getElementById("FechaInicial").focus();
+			}
+			else if(document.getElementById("FechaFinal").value==""){
+				alert("Se debe seleccionar una fecha correcta");
+				document.getElementById("FechaFinal").focus();
+			}
+			else if(document.getElementById("FechaFinal").value<document.getElementById("FechaInicial").value){
+				alert("La fecha final no debe ser menor que la inicial");
+				document.getElementById("FechaFinal").focus();			
+			}
+			else{
+			
+			if(document.getElementById("ProductName").value=="ALL"){
+				var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);	
+				db.transaction(searchVentasTodosProductos, errorCB);
+			}
+			/*else{
+				var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);	
+				db.transaction(searchVentasPorProducto, errorCB);				
+			}*/
+			
+			document.getElementById("order-day").className="hide";
+			document.getElementById("order-details").className="hide";
+			document.getElementById("order-details-product").className="show";
+			}
         }
-		function searchQueryDB(tx) {
-            tx.executeSql("SELECT * FROM VENTASDETALLE where producto='"+ document.getElementById("ProductName").value+"'", [], querySuccessVentasDetalle, errorCB);
-        }
-        function querySuccessVentasDetalle(tx, results) {
-            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Pedido</td><td>Cantidad</td><td>Total</td></tr>';
+		function searchVentasTodosProductos(tx){
+            tx.executeSql("SELECT * FROM VENTAS where fecha between'"+document.getElementById("FechaInicial").value+"'and'"
+				+document.getElementById("FechaFinal").value+"'order by fecha", [], querySuccessFecha, errorCB);		
+		}
+		function querySuccessFecha(tx, results) {
+			var searchDate;
+			var searchTotal;
+            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Total</td></tr>';
             var len = results.rows.length;
             for (var i = 0; i < len; i++) {
-                tblText +='<tr><td>'+results.rows.item(i).pedido+'</td><td class="txtCantidad">'+results.rows.item(i).cantidad+'</td><td>$'+results.rows.item(i).total+'</td></tr>';
+				if(i==0){
+					searchDate=results.rows.item(i).fecha;
+					searchTotal = results.rows.item(i).total;					
+				}
+				else if(searchDate==results.rows.item(i).fecha){
+					searchTotal += results.rows.item(i).total;				
+				}
+				else{
+					tblText +='<tr><td>'+searchDate+'</td><td>$'+searchTotal+'</td></tr>';
+					searchDate=results.rows.item(i).fecha;
+					searchTotal = results.rows.item(i).total;
+				}
+				if(i+1==len){					
+					tblText +='<tr><td>'+searchDate+'</td><td>$'+searchTotal+'</td></tr>';
+				}
             }
             tblText +="</table>";
-            document.getElementById("report-details-product").innerHTML =tblText;
+            document.getElementById("report-detail").innerHTML =tblText;
         }
+		function searchVentasPorProducto(tx) {
+            tx.executeSql("SELECT * FROM VENTASDETALLE where producto='"+document.getElementById("ProductName").value+"'", [], querySuccessProducto, errorCB);		
+		}
+		function querySuccessProducto(tx, results) {
+			var ProductoPedido;
+			var ProductoTotal;
+			var ProductoCantidad;
+            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Id</td><td>Nombre</td><td>Cantidad</td><td>Total</td><td>Pedido</td></tr>';
+            var len = results.rows.length;
+            for (var i = 0; i < len; i++) {
+				ProductoCantidad=results.rows.item(i).cantidad;
+				ProductoTotal=results.rows.item(i).total;
+				ProductoPedido=results.rows.item(i).pedido;
+				ProductoFecha();
+				
+				
+				//tblText +='<tr><td>'+results.rows.item(i).id+'</td><td>'+results.rows.item(i).producto+'</td><td>'+results.rows.item(i).cantidad+'</td><td>'+results.rows.item(i).total+'</td><td>'+results.rows.item(i).pedido+'</td></tr>';
+				
+            }
+            tblText +="</table>";
+            document.getElementById("report-detail").innerHTML =tblText;
+        }
+		
+		// -------- CANCELAR BUSQUEDA REPORTE
+		function CancelSearch(){
+			document.getElementById("ProductName").value="ALL";
+			document.getElementById("FechaInicial").value="";
+			document.getElementById("FechaFinal").value="";
+			document.getElementById("order-day").className="show";
+			document.getElementById("order-details-product").className="hide";
+		}
 		// -------- COBRAR
 		function Pagar(){
 			document.getElementById("cobrar").className="show";
@@ -278,7 +353,11 @@
 		}
 		function Cambio(){
 			if((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)>=0){
-				alert("Su cambio es: $"+(document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value));
+				if ((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)==0){
+					alert("Gracias Por su Compra");				
+				}else{
+					alert("Su cambio es: $"+(document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)+"\nGracias Por su Compra");				
+				}
 				document.getElementById("TotalPagado").value="";
 				document.getElementById("TotalCobrar").value="";
 				document.getElementById("cobrar").className="hide";
@@ -289,6 +368,7 @@
 				document.getElementById("TotalPagado").focus();
 			}
 		}
+		
 		// -------- LIMPIAR TABLAS
 		/*function BorrarTablas(){
 			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
@@ -310,13 +390,14 @@
 		<script type="text/javascript" src="cordova.js"></script>
 		
 	<div id="container">
-			<div class="header">
-				<div class="logo"><img src="img/logo.png"></div>
-				<div id="window1" class="title show">VENTAS</div>
-				<div id="window2" class="title hide">ADMNISTRACIÓN</div>
-				<div id="window3" class="title hide">REPORTES</div>
-				<div class="menu" onclick="menu_toggle()"><img src="img/menu.png"></div>
-				<div id="menu-content" class="menu-content">
+	<!-- ------------- HEADER -------------- -->
+		<div class="header">
+			<div class="logo"><img src="img/logo.png"></div>
+			<div id="window1" class="title show">VENTAS</div>
+			<div id="window2" class="title hide">ADMNISTRACIÓN</div>
+			<div id="window3" class="title hide">REPORTES</div>
+			<div class="menu" onclick="menu_toggle()"><img src="img/menu.png"></div>
+			<div id="menu-content" class="menu-content">
 				<div id="menu-list" class="menu-toggle">
 					<ul>
 						<li onclick="menu(1)">Panel de Ventas</li>
@@ -324,8 +405,8 @@
 						<li onclick="menu(3)">Reportes</li>
 					</ul>
 				</div>
-				</div>
 			</div>
+		</div>
 	<!-- ------------- VENTAS -------------- -->
 		<div id="sales" class="show">
 			<div class="content">
@@ -472,29 +553,43 @@
 	<!-- ------------ REPORTES --------------- -->
 		<div id="reports" class="hide">
 		<div class="content">
-			<div class="sub-title">Buscar Producto</div>
+			<div class="sub-title detalle-reporte">Buscar Producto</div>
 				<table class="new-fields">
 				<tr><td class="text-field">Producto:</td><td><select id="ProductName">
+					<option value="ALL"></option>
 					<option value="TACO">TACO</option>
 					<option value="BURRITO">BURRITO</option>
 					<option value="GORDITA">GORDITA</option>
 					<option value="QUESADILLA">QUESADILLA</option>
 					<option value="AGUA">AGUA</option>
-					<option value="COCA">COCA</option></select></tr>
-				</table>
+					<option value="COCA">COCA</option></select>
+				</tr></table>
+			<div class="sub-title detalle-reporte">Buscar Por Rango de Fechas</div>
+				<table class="new-fields dates">
+				<tr><td>De*: <input id="FechaInicial" type="date" name="fecha1" step="1" min="2017-02-01"></td>
+					<td>Hasta*: <input id="FechaFinal" type="date" name="fecha2" step="1" min="2017-02-01"></td>
+				</tr></table>
 				<table class="new-buttons"><tr>
 				<td><div class="button" onclick="Search()">Buscar</div></td>
 				<td><div class="button" onclick="CancelSearch()">Cancelar</div></td>
 				</tr></table>
-			<div id="orders"></div>
-			<div id="order-details" style="display:none;">
-				<div class="sub-title detalle-pedido">Detalle del Pedido</div>
+			<!-- VENTAS DEL DIA -->
+			<div id="order-day" class="show">
+				<div class="sub-title detalle-reporte">Ventas del Dia</div>
+				Monto Total: $<input type="text" id="MontoDia" readonly>
+				<div id="orders"></div>
+			</div>
+			<!-- DETALLE DE VENTA DEL DIA -->
+			<div id="order-details" class="hide">
+				<div class="sub-title detalle-reporte">Detalle del Pedido</div>
 				Pedido: <input type="text" id="PedidoVenta" readonly>			
 				<div id="order-info"></div>
 			</div>
-			<div id="order-details-product" style="display:none;">
-				<div class="sub-title detalle-pedido">Resultado de Busqueda</div>
-				<div id="report-details-product"></div>
+			<!-- VENTAS POR BUSQUEDA -->
+			<div id="order-details-product" class="hide">
+				<div class="sub-title detalle-reporte">Resultado de Busqueda</div>
+				<div id="report-product" class="hide">Producto: <input type="text" id="VentaProducto" readonly></div>
+				<div id="report-detail"></div>
 			</div>
 			<!--<div class="button" onclick="BorrarTablas()">Limpiar Tablas</div>-->
 		</div>
