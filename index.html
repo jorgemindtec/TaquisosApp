@@ -13,6 +13,12 @@
 		var item=1;
 		var idpedido;
 		var pedido;
+		var venta=false;
+		
+		var VectorCantidad=[];
+		var VectorTotal=[];
+		var VectorPedido=[];
+			
 		var Ptaco="TACO";
 		var Pburrito="BURRITO";
 		var Pgordita="GORDITA";
@@ -33,16 +39,25 @@
 		} 
 		var date = yyyy+'-'+mm+'-'+dd;
 		
-        document.addEventListener("deviceready", onDeviceReady, false);
+		function onLoad() {
+			document.addEventListener("deviceready", onDeviceReady, false);
+		}
 
 		function onDeviceReady() {
+			document.addEventListener("backbutton", BotonBackCel, false);
 			var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
 			db.transaction(crearBDProductos, errorCB, successCB);
 			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
 			db.transaction(crearBDVentas, errorCB, successVentas);
 			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
 			db.transaction(crearBDVentasDetalle, errorCB);
-		}		
+		}
+		function BotonBackCel() {
+			if(venta==true){				
+				document.getElementById("cobrar").className="hide";
+			}
+			menu(1);
+		}
         function crearBDProductos(tx) {
             tx.executeSql('CREATE TABLE IF NOT EXISTS PRODUCTOS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, nombre,precio,imagen)');
         }
@@ -50,7 +65,7 @@
             tx.executeSql('CREATE TABLE IF NOT EXISTS VENTAS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, total INTEGER,fecha)');
         }	
         function crearBDVentasDetalle(tx) {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTASDETALLE (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, producto,cantidad,total INTEGER,pedido)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTASDETALLE (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, producto,cantidad INTEGER,total INTEGER,pedido)');
         }
 		// -------- TABLA PRODUCTOS
         function successCB() {
@@ -156,14 +171,14 @@
         }
 		// -------- COBRAR Y REGISTRAR VENTA
 		function Cobrar(){
-			if(document.getElementById("totalprice").value>0){
+		//	if(document.getElementById("totalprice").value>0){
 				var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
 				db.transaction(queryCobrar, errorCB, successVentas);
 				db.transaction(queryVentaId, errorCB, VentasDetalle);
-			}
+		/*	}
 			else{
 				alert("La Lista de Pedido se encuentra vacia.");
-			}
+			}*/
 		}
 		// -------- INSERTAR EN VENTAS
 		function queryCobrar(tx){
@@ -229,7 +244,8 @@
 					+'","'+document.getElementById("price6").value
 					+'","'+idpedido+'")');
 			}
-			Pagar();
+			//Pagar();
+			Cambio();
 			CobrarPedido();
 		}
 		// -------- DETALLE DE PEDIDO
@@ -275,10 +291,10 @@
 				var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);	
 				db.transaction(searchVentasTodosProductos, errorCB);
 			}
-			/*else{
-				var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);	
-				db.transaction(searchVentasPorProducto, errorCB);				
-			}*/
+			else{
+				var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+				db.transaction(searchVentasPorProducto, errorCB);
+			}
 			
 			document.getElementById("order-day").className="hide";
 			document.getElementById("order-details").className="hide";
@@ -312,31 +328,49 @@
 				}
             }
             tblText +="</table>";
+            document.getElementById("VentaProducto").value ="Todos";
             document.getElementById("report-detail").innerHTML =tblText;
         }
 		function searchVentasPorProducto(tx) {
-            tx.executeSql("SELECT * FROM VENTASDETALLE where producto='"+document.getElementById("ProductName").value+"'", [], querySuccessProducto, errorCB);		
+            tx.executeSql("SELECT * FROM VENTASDETALLE where producto='"+document.getElementById("ProductName").value+"'", [], querySuccessProducto, errorCB);
 		}
 		function querySuccessProducto(tx, results) {
-			var ProductoPedido;
-			var ProductoTotal;
-			var ProductoCantidad;
-            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Id</td><td>Nombre</td><td>Cantidad</td><td>Total</td><td>Pedido</td></tr>';
+			var ProductoNombre;
+            //var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Cantidad</td><td>Total</td></tr>';
             var len = results.rows.length;
             for (var i = 0; i < len; i++) {
-				ProductoCantidad=results.rows.item(i).cantidad;
-				ProductoTotal=results.rows.item(i).total;
-				ProductoPedido=results.rows.item(i).pedido;
-				ProductoFecha();
-				
-				
-				//tblText +='<tr><td>'+results.rows.item(i).id+'</td><td>'+results.rows.item(i).producto+'</td><td>'+results.rows.item(i).cantidad+'</td><td>'+results.rows.item(i).total+'</td><td>'+results.rows.item(i).pedido+'</td></tr>';
-				
-            }
+				ProductoNombre=results.rows.item(0).producto;
+				VectorCantidad[i] = results.rows.item(i).cantidad;
+				VectorTotal[i] = results.rows.item(i).total;
+				VectorPedido[i] = results.rows.item(i).pedido;				
+				//tblText +='<tr><td>'+results.rows.item(i).producto+'</td><td>'+results.rows.item(i).cantidad+'</td><td>'+results.rows.item(i).total+'</td></tr>';
+			}
+			ProductoFecha();
+           // tblText +="</table>";
+            document.getElementById("VentaProducto").value =ProductoNombre;
+           // document.getElementById("report-detail").innerHTML =tblText;
+        }
+		function ProductoFecha(){
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			db.transaction(searchVentasPorFecha, errorCB);
+		}
+		function searchVentasPorFecha(tx){
+			tx.executeSql("SELECT * FROM VENTAS where fecha between'"+document.getElementById("FechaInicial").value+"'and'"
+				+document.getElementById("FechaFinal").value+"'order by fecha", [], querySuccessProductoFecha, errorCB);
+		}
+		function querySuccessProductoFecha(tx, results) {
+		/*	for (var j = 0; j < VectorCantidad.length; j++) {
+			//alert("pedido:"+VectorPedido[j]);
+				//alert("cantidad:"+VectorCantidad[j]+" total:"+VectorTotal[j]+" pedido:"+VectorPedido[j]);
+			}*/
+            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Cantidad</td><td>Total</td></tr>';
+            var len = results.rows.length;
+            for (var i = 0; i < len; i++) {				
+				tblText +='<tr><td>'+results.rows.item(i).fecha+'</td><td>'+results.rows.item(i).total+'</td><td>'+results.rows.item(i).id+'</td></tr>';
+			}
             tblText +="</table>";
             document.getElementById("report-detail").innerHTML =tblText;
         }
-		
 		// -------- CANCELAR BUSQUEDA REPORTE
 		function CancelSearch(){
 			document.getElementById("ProductName").value="ALL";
@@ -347,14 +381,20 @@
 		}
 		// -------- COBRAR
 		function Pagar(){
-			document.getElementById("cobrar").className="show";
-			document.getElementById("TotalCobrar").value=document.getElementById("totalprice").value;
-			document.getElementById("TotalPagado").focus();
+			if(document.getElementById("totalprice").value>0){
+				venta=true;
+				document.getElementById("cobrar").className="show";
+				document.getElementById("TotalCobrar").value=document.getElementById("totalprice").value;
+				document.getElementById("TotalPagado").focus();
+			}
+			else{
+				alert("La Lista de Pedido se encuentra vacia.");
+			}
 		}
 		function Cambio(){
 			if((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)>=0){
 				if ((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)==0){
-					alert("Gracias Por su Compra");				
+					alert("Gracias por su Compra");
 				}else{
 					alert("Su cambio es: $"+(document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)+"\nGracias Por su Compra");				
 				}
@@ -386,7 +426,7 @@
 		}*/
 	</script>
     </head>
-    <body>
+    <body onload="onLoad()">
 		<script type="text/javascript" src="cordova.js"></script>
 		
 	<div id="container">
@@ -408,6 +448,16 @@
 			</div>
 		</div>
 	<!-- ------------- VENTAS -------------- -->
+	<div id="test">
+		<div id="cobrar" class="hide">
+		<div id="caja">
+			<table id="cobrar-info">
+				<tr><td>Cantidad a Pagar:</td><td class="precio-caja">$ <input id="TotalCobrar" class="cobrar" type="number" readonly></td></tr>
+				<tr><td>Cantidad Recibida:</td><td class="precio-caja">$ <input id="TotalPagado" class="cobrar" type="number"></td></tr>
+			</table>
+			<div class="button cobrar" onclick="Cobrar()">Cobrar</div>
+		</div>			
+		</div>
 		<div id="sales" class="show">
 			<div class="content">
 				<div class="sub-title">SELECCIONE UN PRODUCTO</div>
@@ -429,7 +479,7 @@
 						<td class="item" onclick="producto(1,3)">
 						<div class="item-content">
 							<div class="item-name">GORDITA</div>
-							<div class="item-image"><img src="img/taco.png"></div>
+							<div class="item-image"><img src="img/gordita.png"></div>
 						</div>
 						</td>
 						<td class="item" onclick="producto(1,4)">
@@ -504,19 +554,11 @@
 				</div>
 			</div>
 			<div class="sell">
-					<div class="sell-button" onclick="Cobrar()">COBRAR</div>
+					<div class="sell-button" onclick="Pagar()">COBRAR</div>
 					<div class="sell-total"> TOTAL: $<input id="totalprice" class="item-list total-price" type="number" readonly></div>
 			</div>				
 		</div>
-		<div id="cobrar" class="hide">
-		<div id="caja">
-			<table id="cobrar-info">
-				<tr><td>Cantidad a Pagar:</td><td class="precio-caja">$ <input id="TotalCobrar" class="cobrar" type="number" readonly></td></tr>
-				<tr><td>Cantidad Recibida:</td><td class="precio-caja">$ <input id="TotalPagado" class="cobrar" type="number"></td></tr>
-			</table>
-			<div class="button cobrar" onclick="Cambio()">Cobrar</div>
-		</div>			
-		</div>
+	</div>
 	<!-- ------------ PANEL ADMINISTRATIVO ------------ -->
 		<div id="admin" class="hide">
 		<div class="content">
@@ -571,7 +613,7 @@
 				</tr></table>
 				<table class="new-buttons"><tr>
 				<td><div class="button" onclick="Search()">Buscar</div></td>
-				<td><div class="button" onclick="CancelSearch()">Cancelar</div></td>
+				<td><div class="button cb" onclick="CancelSearch()">Cancelar Busqueda</div></td>
 				</tr></table>
 			<!-- VENTAS DEL DIA -->
 			<div id="order-day" class="show">
@@ -588,7 +630,7 @@
 			<!-- VENTAS POR BUSQUEDA -->
 			<div id="order-details-product" class="hide">
 				<div class="sub-title detalle-reporte">Resultado de Busqueda</div>
-				<div id="report-product" class="hide">Producto: <input type="text" id="VentaProducto" readonly></div>
+				<div id="report-product">Producto: <input type="text" id="VentaProducto" readonly></div>
 				<div id="report-detail"></div>
 			</div>
 			<!--<div class="button" onclick="BorrarTablas()">Limpiar Tablas</div>-->
