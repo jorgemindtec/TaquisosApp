@@ -18,6 +18,8 @@
 		var VectorCantidad=[];
 		var VectorTotal=[];
 		var VectorPedido=[];
+		var VectorVentaPedido=[];
+		var VectorVentaFecha=[];
 			
 		var Ptaco="TACO";
 		var Pburrito="BURRITO";
@@ -330,25 +332,25 @@
             tblText +="</table>";
             document.getElementById("VentaProducto").value ="Todos";
             document.getElementById("report-detail").innerHTML =tblText;
-        }
+        }		
+		// --------- VENTAS POR PRODUCTO EN RANGO DE FECHAS
 		function searchVentasPorProducto(tx) {
             tx.executeSql("SELECT * FROM VENTASDETALLE where producto='"+document.getElementById("ProductName").value+"'", [], querySuccessProducto, errorCB);
 		}
 		function querySuccessProducto(tx, results) {
 			var ProductoNombre;
-            //var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Cantidad</td><td>Total</td></tr>';
             var len = results.rows.length;
+			VectorCantidad=[];
+			VectorTotal=[];
+			VectorPedido=[];			
             for (var i = 0; i < len; i++) {
 				ProductoNombre=results.rows.item(0).producto;
 				VectorCantidad[i] = results.rows.item(i).cantidad;
 				VectorTotal[i] = results.rows.item(i).total;
 				VectorPedido[i] = results.rows.item(i).pedido;				
-				//tblText +='<tr><td>'+results.rows.item(i).producto+'</td><td>'+results.rows.item(i).cantidad+'</td><td>'+results.rows.item(i).total+'</td></tr>';
 			}
 			ProductoFecha();
-           // tblText +="</table>";
             document.getElementById("VentaProducto").value =ProductoNombre;
-           // document.getElementById("report-detail").innerHTML =tblText;
         }
 		function ProductoFecha(){
 			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
@@ -359,18 +361,59 @@
 				+document.getElementById("FechaFinal").value+"'order by fecha", [], querySuccessProductoFecha, errorCB);
 		}
 		function querySuccessProductoFecha(tx, results) {
-		/*	for (var j = 0; j < VectorCantidad.length; j++) {
-			//alert("pedido:"+VectorPedido[j]);
-				//alert("cantidad:"+VectorCantidad[j]+" total:"+VectorTotal[j]+" pedido:"+VectorPedido[j]);
-			}*/
-            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Cantidad</td><td>Total</td></tr>';
             var len = results.rows.length;
-            for (var i = 0; i < len; i++) {				
-				tblText +='<tr><td>'+results.rows.item(i).fecha+'</td><td>'+results.rows.item(i).total+'</td><td>'+results.rows.item(i).id+'</td></tr>';
+            for (var i = 0; i < len; i++) {
+				VectorVentaPedido[i]= results.rows.item(i).id;
+				VectorVentaFecha[i]= results.rows.item(i).fecha;
+			}
+			VentaPorProducto();
+        }
+		function VentaPorProducto(){
+			var fechaventaproducto;
+			var cantidadproducto=0;
+			var totalproducto=0;
+			var ProductoFecha=[];
+			var ProductoCantidad=[];
+			var ProductoTotal=[];
+			var contador=0;
+            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Fecha</td><td>Cantidad</td><td>Total</td></tr>';
+			for (var i = 0; i < VectorPedido.length; i++) {
+				for (var j = 0; j < VectorVentaPedido.length; j++) {					
+					if(VectorVentaPedido[j]==VectorPedido[i]){
+						ProductoFecha[contador]=VectorVentaFecha[j];
+						ProductoCantidad[contador]=VectorCantidad[i];
+						ProductoTotal[contador]=VectorTotal[i];
+						contador++;
+						i++;						
+					}
+				}
+			}
+			contador=ProductoFecha.length;
+			for (var i = 0; i < ProductoFecha.length; i++) {	
+				if(i==0){
+					fechaventaproducto=ProductoFecha[0];
+					cantidadproducto=ProductoCantidad[0];
+					totalproducto=ProductoTotal[0];
+					i++;
+				}
+				if(fechaventaproducto==ProductoFecha[i]){
+					cantidadproducto+=ProductoCantidad[i];
+					totalproducto+=ProductoTotal[i];
+				}
+				else{
+					tblText +='<tr><td>'+fechaventaproducto+'</td><td>'+cantidadproducto+'</td><td>$'+totalproducto+'</td></tr>';
+					fechaventaproducto=ProductoFecha[i];
+					cantidadproducto=ProductoCantidad[i];
+					totalproducto=ProductoTotal[i];				
+				}
+				if((contador-1)==i){
+					//alert("fecha3: "+fechaventaproducto+"<br>cantidad: "+cantidadproducto+"<br>total: "+totalproducto);
+					tblText +='<tr><td>'+fechaventaproducto+'</td><td>'+cantidadproducto+'</td><td>$'+totalproducto+'</td></tr>';					
+				}
 			}
             tblText +="</table>";
             document.getElementById("report-detail").innerHTML =tblText;
-        }
+		}
 		// -------- CANCELAR BUSQUEDA REPORTE
 		function CancelSearch(){
 			document.getElementById("ProductName").value="ALL";
@@ -598,7 +641,7 @@
 			<div class="sub-title detalle-reporte">Buscar Producto</div>
 				<table class="new-fields">
 				<tr><td class="text-field">Producto:</td><td><select id="ProductName">
-					<option value="ALL"></option>
+					<option value="ALL">TODOS</option>
 					<option value="TACO">TACO</option>
 					<option value="BURRITO">BURRITO</option>
 					<option value="GORDITA">GORDITA</option>
