@@ -15,6 +15,11 @@
 		var pedido;
 		var venta=false;
 		
+		var ProductoDia=[];
+		var VectorProductoDia=[];
+		var VectorCantidadDia=[];
+		var indice=0;
+		
 		var VectorCantidad=[];
 		var VectorTotal=[];
 		var VectorPedido=[];
@@ -29,6 +34,10 @@
 		var Pcoca="COCA";
 		
 		var fecha = new Date();
+		
+		var hour = fecha.getHours();
+		var min = fecha.getMinutes();
+		var hora = hour+":"+min;
 		var dd = fecha.getDate();
 		var mm = fecha.getMonth()+1; //January is 0!
 
@@ -44,7 +53,6 @@
 		function onLoad() {
 			document.addEventListener("deviceready", onDeviceReady, false);
 		}
-
 		function onDeviceReady() {
 			document.addEventListener("backbutton", BotonBackCel, false);
 			var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
@@ -64,7 +72,7 @@
             tx.executeSql('CREATE TABLE IF NOT EXISTS PRODUCTOS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, nombre,precio,imagen)');
         }
         function crearBDVentas(tx) {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTAS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, total INTEGER,fecha)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS VENTAS (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, total INTEGER,fecha,hora)');
         }	
         function crearBDVentasDetalle(tx) {
             tx.executeSql('CREATE TABLE IF NOT EXISTS VENTASDETALLE (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, producto,cantidad INTEGER,total INTEGER,pedido)');
@@ -149,44 +157,118 @@
         function errorCB(err) {
             alert("Ocurrio un Error: "+err.code);
         }
-		// -------- TABLA VENTAS
+		// -------- REPORTE VENTAS DEL DIA
 		function successVentas(){
             var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
-            db.transaction(showVentas, errorCB);
+            db.transaction(showVentas, errorCB, MostrarDetalleProducto);
 		}
         function showVentas(tx) {
             tx.executeSql("SELECT * FROM VENTAS where fecha='"+date+"'", [], querySuccessVentas, errorCB);
         }
         function querySuccessVentas(tx, results) {
 			var MontoDia=0;
-            var tblText='<table id="report-info"><tr class="table-header"><td>Pedido</td><td>Total</td><td>Fecha</td></tr>';
+            var tblText='<table id="report-info"><tr class="table-header"><td>Pedido</td><td>Total</td><td>Hora</td><td>Fecha</td></tr>';
             var len = results.rows.length;
+			ProductoDia=[];
             for (var i = 0; i < len; i++) {
 				MontoDia += results.rows.item(i).total;
 				var tmpArgs=results.rows.item(i).id;
+				ProductoDia[i]=tmpArgs;
                 tblText +='<tr onclick="DetallePedido('+tmpArgs+');"><td>'+results.rows.item(i).id +'</td><td class="txtTotal">$'
-                        + results.rows.item(i).total +'</td><td class="txtFecha">' + results.rows.item(i).fecha +'</td></tr>';
+                        + results.rows.item(i).total +'</td><td>' + results.rows.item(i).hora +'</td><td class="txtFecha">' + results.rows.item(i).fecha +'</td></tr>';
             }
             tblText +="</table>";
             document.getElementById("MontoDia").value =MontoDia;
             document.getElementById("orders").innerHTML =tblText;
         }
+		// -------- DETALLE PRODUCTO POR DIA
+		function MostrarDetalleProducto(){	
+			VectorProductoDia=[];
+			VectorCantidadDia=[];
+			indice=0;	
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+            db.transaction(searchDetalleProductoDia, errorCB, showListaProductoDia);			
+		}
+		function searchDetalleProductoDia(tx){
+			for(i=0;i<ProductoDia.length;i++){
+				tx.executeSql("SELECT * FROM VENTASDETALLE where pedido='"+ProductoDia[i]+"'", [], querySuccessDetalleProductoDia, errorCB);
+			}			
+		}
+		function querySuccessDetalleProductoDia(tx, results) {
+            var len = results.rows.length;
+            for(var i = 0; i < len; i++) {
+				VectorProductoDia[indice]=results.rows.item(i).producto;
+				VectorCantidadDia[indice]=results.rows.item(i).cantidad;
+				indice++;
+            }
+        }
+		function showListaProductoDia(){
+			var producto="";
+			var cantidadp=0;
+			var contador=0;
+			var NumProducto=0;
+			var bnd=true;
+			var tblText="<table id='producto-infodia'>";
+			for(var i=0;i<VectorProductoDia.length;i++){
+				if(bnd==true & VectorProductoDia[i]!=""){
+					producto=VectorProductoDia[i];
+					cantidadp=VectorCantidadDia[i];
+					VectorProductoDia[i]="";
+					VectorCantidadDia[i]="";
+					bnd=false;
+					NumProducto++;
+				}
+				else if(producto==VectorProductoDia[i] & VectorProductoDia[i]!=""){
+					cantidadp+=VectorCantidadDia[i];
+					VectorProductoDia[i]="";
+					VectorCantidadDia[i]="";
+				}
+				if(contador<NumProducto){
+					if((i+1)==VectorProductoDia.length){
+						bnd=true;
+						contador++;
+						i=0;
+						tblText+="<tr><td>"+producto+": "+cantidadp+"</td></tr>";
+					}
+				}
+			}
+            tblText +="</table>";
+            document.getElementById("DetalleProductoDia").innerHTML =tblText;
+		}
+		// -------- DETALLE DE PEDIDO
+		function DetallePedido(row){
+			pedido=row;
+			MostrarDetalle();
+		}
+		function MostrarDetalle(){
+			document.getElementById("order-details").className="show";
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+            db.transaction(searchDetallePedido, errorCB);
+		}
+		function searchDetallePedido(tx){
+            tx.executeSql("SELECT * FROM VENTASDETALLE where pedido='"+pedido+"'", [], querySuccessDetallePedido, errorCB);
+        }
+		function querySuccessDetallePedido(tx, results) {
+			document.getElementById("PedidoVenta").value=pedido;
+            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Producto</td><td>Cantidad</td><td>Total</td></tr>';
+            var len = results.rows.length;
+            for (var i = 0; i < len; i++) {
+                tblText +='<tr><td>'+results.rows.item(i).producto+'</td><td class="txtCantidad">'+results.rows.item(i).cantidad+'</td><td>$'+results.rows.item(i).total+'</td></tr>';
+            }
+            tblText +="</table>";
+            document.getElementById("order-info").innerHTML =tblText;
+        }
 		// -------- COBRAR Y REGISTRAR VENTA
 		function Cobrar(){
-		//	if(document.getElementById("totalprice").value>0){
-				var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
-				db.transaction(queryCobrar, errorCB, successVentas);
-				db.transaction(queryVentaId, errorCB, VentasDetalle);
-		/*	}
-			else{
-				alert("La Lista de Pedido se encuentra vacia.");
-			}*/
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			db.transaction(queryCobrar, errorCB, successVentas);
+			db.transaction(queryVentaId, errorCB, VentasDetalle);
 		}
 		// -------- INSERTAR EN VENTAS
 		function queryCobrar(tx){
-			tx.executeSql('INSERT INTO VENTAS (total, fecha) VALUES ("'
+			tx.executeSql('INSERT INTO VENTAS (total, fecha, hora) VALUES ("'
 				+document.getElementById("totalprice").value
-				+'","'+date+'")');
+				+'","'+date+'","'+hora+'")');
 		}
 		// -------- OBTENER ID DE LA VENTA
 		function queryVentaId(tx){
@@ -246,33 +328,11 @@
 					+'","'+document.getElementById("price6").value
 					+'","'+idpedido+'")');
 			}
-			//Pagar();
 			Cambio();
 			CobrarPedido();
+			MostrarDetalleProducto();
 		}
-		// -------- DETALLE DE PEDIDO
-		function DetallePedido(row){
-			pedido=row;
-			MostrarDetalle();
-		}
-		function MostrarDetalle(){
-			document.getElementById("order-details").className="show";
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
-            db.transaction(searchDetallePedido, errorCB);			
-		}
-		function searchDetallePedido(tx){
-            tx.executeSql("SELECT * FROM VENTASDETALLE where pedido='"+pedido+"'", [], querySuccessDetallePedido, errorCB);
-        }
-		function querySuccessDetallePedido(tx, results) {
-			document.getElementById("PedidoVenta").value=pedido;
-            var tblText='<table id="report-info-detalle"><tr class="table-header"><td>Producto</td><td>Cantidad</td><td>Total</td></tr>';
-            var len = results.rows.length;
-            for (var i = 0; i < len; i++) {
-                tblText +='<tr><td>'+results.rows.item(i).producto+'</td><td class="txtCantidad">'+results.rows.item(i).cantidad+'</td><td>$'+results.rows.item(i).total+'</td></tr>';
-            }
-            tblText +="</table>";
-            document.getElementById("order-info").innerHTML =tblText;
-        }
+		
 		// -------- BUSCAR PRODUCTO EN VENTAS DETALLE
         function Search() {
 			if(document.getElementById("FechaInicial").value==""){
@@ -342,7 +402,7 @@
             var len = results.rows.length;
 			VectorCantidad=[];
 			VectorTotal=[];
-			VectorPedido=[];			
+			VectorPedido=[];
             for (var i = 0; i < len; i++) {
 				ProductoNombre=results.rows.item(0).producto;
 				VectorCantidad[i] = results.rows.item(i).cantidad;
@@ -662,6 +722,7 @@
 			<div id="order-day" class="show">
 				<div class="sub-title detalle-reporte">Ventas del Dia</div>
 				Monto Total: $<input type="text" id="MontoDia" readonly>
+				<div id="DetalleProductoDia"></div>
 				<div id="orders"></div>
 			</div>
 			<!-- DETALLE DE VENTA DEL DIA -->
