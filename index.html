@@ -37,7 +37,7 @@
 		
 		var hour = fecha.getHours();
 		var min = fecha.getMinutes();
-		var hora = hour+":"+min;
+		var horaventa;
 		var dd = fecha.getDate();
 		var mm = fecha.getMonth()+1; //January is 0!
 
@@ -55,11 +55,11 @@
 		}
 		function onDeviceReady() {
 			document.addEventListener("backbutton", BotonBackCel, false);
-			var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
+			var db = window.openDatabase("Productos", "1.0", "Productos", 500000000);
 			db.transaction(crearBDProductos, errorCB, successCB);
-			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
 			db.transaction(crearBDVentas, errorCB, successVentas);
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
 			db.transaction(crearBDVentasDetalle, errorCB);
 		}
 		function BotonBackCel() {
@@ -79,7 +79,7 @@
         }
 		// -------- TABLA PRODUCTOS
         function successCB() {
-            var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
+            var db = window.openDatabase("Productos", "1.0", "Productos", 500000000);
             db.transaction(queryDB, errorCB);
         }
         function queryDB(tx) {
@@ -99,7 +99,7 @@
         }
 		// -------- INSERT
 		function Insert(){
-            var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
+            var db = window.openDatabase("Productos", "1.0", "Productos", 500000000);
             db.transaction(insertDB, errorCB, successCB);			
 		}
 		function insertDB(tx){
@@ -128,7 +128,7 @@
         }
 		// -------- UPDATE
         function Update() {
-            var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
+            var db = window.openDatabase("Productos", "1.0", "Productos", 500000000);
             db.transaction(editRow, errorCB);
         }
         function editRow(tx) {
@@ -146,7 +146,7 @@
 		}
 		// -------- DELETE
         function Delete() {
-            var db = window.openDatabase("Productos", "1.0", "Productos", 5000000);
+            var db = window.openDatabase("Productos", "1.0", "Productos", 500000000);
             db.transaction(deleteRow, errorCB);
 			Cancel();
         }
@@ -159,7 +159,7 @@
         }
 		// -------- REPORTE VENTAS DEL DIA
 		function successVentas(){
-            var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+            var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
             db.transaction(showVentas, errorCB, MostrarDetalleProducto);
 		}
         function showVentas(tx) {
@@ -186,7 +186,7 @@
 			VectorProductoDia=[];
 			VectorCantidadDia=[];
 			indice=0;	
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
             db.transaction(searchDetalleProductoDia, errorCB, showListaProductoDia);			
 		}
 		function searchDetalleProductoDia(tx){
@@ -242,7 +242,7 @@
 		}
 		function MostrarDetalle(){
 			document.getElementById("order-details").className="show";
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
             db.transaction(searchDetallePedido, errorCB);
 		}
 		function searchDetallePedido(tx){
@@ -260,7 +260,8 @@
         }
 		// -------- COBRAR Y REGISTRAR VENTA
 		function Cobrar(){
-			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			horaventa = hour+":"+min;
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
 			db.transaction(queryCobrar, errorCB, successVentas);
 			db.transaction(queryVentaId, errorCB, VentasDetalle);
 		}
@@ -268,7 +269,7 @@
 		function queryCobrar(tx){
 			tx.executeSql('INSERT INTO VENTAS (total, fecha, hora) VALUES ("'
 				+document.getElementById("totalprice").value
-				+'","'+date+'","'+hora+'")');
+				+'","'+date+'","'+horaventa+'")');
 		}
 		// -------- OBTENER ID DE LA VENTA
 		function queryVentaId(tx){
@@ -282,7 +283,7 @@
         }
 		// -------- VENTAS DETALLE
 		function VentasDetalle(){
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
             db.transaction(insertDBVentasDetalle, errorCB);
 		}
 		function insertDBVentasDetalle(tx){
@@ -350,11 +351,11 @@
 			else{
 			
 			if(document.getElementById("ProductName").value=="ALL"){
-				var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);	
+				var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);	
 				db.transaction(searchVentasTodosProductos, errorCB);
 			}
 			else{
-				var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+				var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
 				db.transaction(searchVentasPorProducto, errorCB);
 			}
 			
@@ -413,7 +414,7 @@
             document.getElementById("VentaProducto").value =ProductoNombre;
         }
 		function ProductoFecha(){
-			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
 			db.transaction(searchVentasPorFecha, errorCB);
 		}
 		function searchVentasPorFecha(tx){
@@ -514,14 +515,14 @@
 		
 		// -------- LIMPIAR TABLAS
 		/*function BorrarTablas(){
-			var db = window.openDatabase("Ventas", "1.0", "Ventas", 5000000);
+			var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
 			db.transaction(BorrarVentas, errorCB, BorrarTablaVD);
 		}
 		function BorrarVentas(tx){
 			tx.executeSql('DROP TABLE VENTAS');
 		}
 		function BorrarTablaVD(){
-			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 5000000);
+			var db = window.openDatabase("Ventasdetalle", "1.0", "Ventasdetalle", 500000000);
             db.transaction(BorrarVentasDetalle, errorCB);		
 		}
 		function BorrarVentasDetalle(tx){
