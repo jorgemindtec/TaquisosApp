@@ -35,8 +35,8 @@
 		
 		var fecha = new Date();
 		
-		var hour = fecha.getHours();
-		var min = fecha.getMinutes();
+		var hour="";
+		var min="";
 		var horaventa="";
 		var dd = fecha.getDate();
 		var mm = fecha.getMonth()+1; //January is 0!
@@ -258,8 +258,45 @@
             tblText +="</table>";
             document.getElementById("order-info").innerHTML =tblText;
         }
-		// -------- COBRAR Y REGISTRAR VENTA
+		// -------- COBRAR
+		function Pagar(){
+			if(document.getElementById("totalprice").value>0){
+				venta=true;
+				document.getElementById("cobrar").className="show";
+				document.getElementById("TotalCobrar").value=document.getElementById("totalprice").value;
+				document.getElementById("TotalPagado").focus();
+			}
+			else{
+				alert("La Lista de Pedido se encuentra vacia.");
+			}
+		}
 		function Cobrar(){
+			if((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)>=0){
+				if ((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)==0){
+					alert("Gracias por su Compra");
+				}else{
+					alert("Su cambio es: $"+(document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)+"\nGracias Por su Compra");				
+				}				
+				RegistroVenta();
+				//CobrarPedido();
+				document.getElementById("TotalPagado").value="";
+				document.getElementById("TotalCobrar").value="";
+				document.getElementById("cobrar").className="hide";
+			}
+			else{
+				alert("La cantidad recibida no es valida");
+				document.getElementById("TotalPagado").value="";
+				document.getElementById("TotalPagado").focus();
+			}
+		}
+		// -------- REGISTRAR VENTA
+		function RegistroVenta(){
+			fecha = new Date();
+			hour = fecha.getHours();
+			min = fecha.getMinutes();
+			if(min<10){
+				min="0"+min;
+			}
 			horaventa = hour+":"+min;
 			var db = window.openDatabase("Ventas", "1.0", "Ventas", 500000000);
 			db.transaction(queryCobrar, errorCB, successVentas);
@@ -329,7 +366,6 @@
 					+'","'+document.getElementById("price6").value
 					+'","'+idpedido+'")');
 			}
-			Cambio();
 			CobrarPedido();
 			MostrarDetalleProducto();
 		}
@@ -482,35 +518,6 @@
 			document.getElementById("FechaFinal").value="";
 			document.getElementById("order-day").className="show";
 			document.getElementById("order-details-product").className="hide";
-		}
-		// -------- COBRAR
-		function Pagar(){
-			if(document.getElementById("totalprice").value>0){
-				venta=true;
-				document.getElementById("cobrar").className="show";
-				document.getElementById("TotalCobrar").value=document.getElementById("totalprice").value;
-				document.getElementById("TotalPagado").focus();
-			}
-			else{
-				alert("La Lista de Pedido se encuentra vacia.");
-			}
-		}
-		function Cambio(){
-			if((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)>=0){
-				if ((document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)==0){
-					alert("Gracias por su Compra");
-				}else{
-					alert("Su cambio es: $"+(document.getElementById("TotalPagado").value-document.getElementById("TotalCobrar").value)+"\nGracias Por su Compra");				
-				}
-				document.getElementById("TotalPagado").value="";
-				document.getElementById("TotalCobrar").value="";
-				document.getElementById("cobrar").className="hide";
-			}
-			else{
-				alert("La cantidad recibida no es valida");
-				document.getElementById("TotalPagado").value="";
-				document.getElementById("TotalPagado").focus();
-			}
 		}
 		
 		// -------- LIMPIAR TABLAS
